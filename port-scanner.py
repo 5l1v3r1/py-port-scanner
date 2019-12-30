@@ -1,11 +1,13 @@
 import sys
 import socket
 from datetime import datetime
+import threading
 
 #python port-scnner.py <IP>
-
+threads=[]
+time1 = datetime.now()
 if len(sys.argv) == 3:
-    target = socket.gethostbyname(sys.argv[1]) #Translet hostname to IPv4
+    host = socket.gethostbyname(sys.argv[1]) #Translet hostname to IPv4
     getport = sys.argv[2].split('-')
 else:
     print("Invalid argument")
@@ -13,33 +15,31 @@ else:
     print("Example:\n python port-scanner.py 192.168.1.1 1-65535")
 
 # Just a banner :P
-print('='*55)
-print("Scan stared against {}".format(target) + " at " + str(datetime.now()))
-print('='*55)
+print('='*65)
+print("Scan started against {}".format(host) + " at " + str(datetime.now()))
+print('='*65)
 
-try:
-    for port in range(int(getport[0]),int(getport[1])):
-        #Maknig variable of the socket object with AF_INT is IPv4 and SOCK_STREAM is Port
-        s= socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
-        #setting timeout to 2 second for connection 
-        socket.setdefaulttimeout(2)
-        #IF result is 0 that means port is open if It's 1 that mean port is closed 
-        result = s.connect_ex((target,port))
+
+def scan(host,ports):
+        socket.setdefaulttimeout(1)
+        result=socket.socket(socket.AF_INET,socket.SOCK_STREAM).connect_ex((host,ports))
         if result == 0:
-            print("Port {} is open".format(port))
-            s.close()
-        
-# If keyboard interruption found
-except KeyboardInterrupt:
-    print("\n Exiting the program!, Keyboard Interruption found ctr^c")
-    sys.exit()
+            print("Discovered open port {}/tcp".format(ports))
 
-# If host couldn't resolved 
-except socket.gaierror:
-    print("\n Host could not be resloved")
-    sys.exit()
+            socket.socket(socket.AF_INET,socket.SOCK_STREAM).close()
 
-# If couldn't connect to server
-except socket.error:
-    print("\n Could not connect to server")
-    sys.exit()
+for ports in range(int(getport[0]),int(getport[1])):
+    t1 = threading.Thread(target=scan,args=(host,ports))
+    threads.append(t1)
+    t1.start()
+
+for thread in threads:
+    thread.join()
+
+
+time2 = datetime.now() #Getting time after loop is completed
+total = time2 - time1  #Total time taken 
+#Just another banner
+print ("="*45)
+print ("Scanning completed in: ",total)
+print ("="*45)
